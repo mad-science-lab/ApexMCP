@@ -61,7 +61,7 @@ class ApexClient:
             headers=_HEADERS,
             timeout=self._timeout,
             # Controllers are often addressed by IP; without unsafe=True aiohttp
-            # drops the session cookie. Harmless for hostnames like reef.local.
+            # drops the session cookie. Harmless for hostnames like apex.local.
             cookie_jar=aiohttp.CookieJar(unsafe=True),
         )
         return self

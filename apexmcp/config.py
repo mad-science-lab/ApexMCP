@@ -52,7 +52,7 @@ def load(env: Mapping[str, str] | None = None) -> Settings:
     env = os.environ if env is None else env
     host = env.get("APEX_HOST", "").strip()
     if not host:
-        raise ConfigError("APEX_HOST is required, e.g. APEX_HOST=http://reef.local")
+        raise ConfigError("APEX_HOST is required, e.g. APEX_HOST=http://apex.local")
 
     username = env.get("APEX_USERNAME", "admin").strip() or "admin"
     password = env.get("APEX_PASSWORD", "")

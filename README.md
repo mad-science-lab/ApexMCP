@@ -20,7 +20,7 @@ Everything is an environment variable.
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `APEX_HOST` | required | `http://reef.local` or an IP. `.local` names need working mDNS on the machine running the server. |
+| `APEX_HOST` | required | `http://apex.local` or an IP. `.local` names need working mDNS on the machine running the server. |
 | `APEX_USERNAME` | `admin` | |
 | `APEX_PASSWORD` | empty | Or `APEX_PASSWORD_FILE` to read it from a file: one line is the password, two lines are username then password. Needed for any write. |
 | `APEX_ALLOW_WRITE` | `false` | Enables `apex_set_outlet`, `apex_start_feed`, `apex_cancel_feed`. |
@@ -44,7 +44,7 @@ The server runs on your own machine over stdio, so it works in the desktop app b
       "command": "python",
       "args": ["-m", "apexmcp"],
       "env": {
-        "APEX_HOST": "http://reef.local",
+        "APEX_HOST": "http://apex.local",
         "APEX_PASSWORD_FILE": "C:\\path\\to\\apex-password.txt",
         "APEX_ALLOW_WRITE": "true",
         "APEX_PROTECTED_OUTLETS": "ReturnPump,Heater200"
