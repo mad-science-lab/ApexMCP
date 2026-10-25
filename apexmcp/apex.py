@@ -127,7 +127,8 @@ class ApexClient:
         return await self._request("GET", f"/rest/config?{self._bust()}")
 
     async def get_ilog(self, days: int, sdate: str) -> dict[str, Any]:
-        """Input history (probes, power). `sdate` is YYMMDD and is the END date."""
+        """Input history (probes, power). `sdate` is YYMMDD and is the START date; the log
+        runs from there to sdate + days, clipped at now (verified on AOS 5.16L)."""
         return await self._request("GET", f"/rest/ilog?days={days}&sdate={sdate}&{self._bust()}")
 
     async def get_olog(self, days: int, sdate: str) -> Any:

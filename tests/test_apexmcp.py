@@ -150,6 +150,14 @@ async def test_olog_envelope_tolerance(client):
     assert out["count"] == 1 and out["events"][0]["state"] == "ON"
 
 
+async def test_ilog_sdate_is_start_of_window(client):
+    from datetime import datetime, timedelta
+    await tools.probe_history(client, None, 7)
+    _, days, sdate = next(c for c in client.calls if c[0] == "ilog")
+    assert days == 7
+    assert sdate == (datetime.now() - timedelta(days=6)).strftime("%y%m%d")
+
+
 async def test_probe_stats_drift(client):
     day = 86400
     rec = []

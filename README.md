@@ -97,7 +97,7 @@ With `APEX_ALLOW_PROGRAM_WRITE`:
 Learned the hard way, and encoded in `apexmcp/model.py`:
 
 - Outlet state is `status[0]` (`AON`, `AOF`, `TBL`, `ON`, `OFF`). The first three mean the outlet is under program control.
-- `/rest/ilog` logs inputs only, and its `sdate` is the end date. `/rest/olog` logs outlet changes, and its `sdate` is the start date. Both are `YYMMDD`.
+- `/rest/ilog` logs inputs only. `/rest/olog` logs outlet changes. For both, `sdate` (`YYMMDD`) is the **start** date and the log runs from there to `sdate + days`, clipped at now. Treating `ilog`'s `sdate` as an end date, as some older write-ups do, returns only today.
 - Temperature comes with no unit. Values of 45 or below are guessed as Celsius.
 - Day-over-day drift is used instead of a straight-line fit, which reports phantom drift over a window that is not a whole number of daily cycles.
 

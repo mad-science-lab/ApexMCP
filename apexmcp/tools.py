@@ -169,7 +169,11 @@ async def config_section(client: ApexLike, section: str) -> Any:
 
 async def _ilog_records(client: ApexLike, days: int) -> tuple[list[dict[str, Any]], float]:
     days = max(1, min(days, 30))
-    resp = await client.get_ilog(days, _yymmdd(datetime.now()))
+    # Verified live (AOS 5.16L): ilog `sdate` is the START date and the log runs from
+    # there to sdate + days, clipped at now. The older notes said "end date", which
+    # returns only today for any `days`.
+    start = datetime.now() - timedelta(days=days - 1)
+    resp = await client.get_ilog(days, _yymmdd(start))
     tz = _float((resp.get("ilog") or resp).get("timezone")) if isinstance(resp, dict) else None
     return _find_records(resp), (tz or 0.0)
 
