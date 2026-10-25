@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 _TRUE = {"1", "true", "yes", "on"}
@@ -37,7 +37,7 @@ def _flag(env: Mapping[str, str], key: str) -> bool:
 class Settings:
     host: str
     username: str = "admin"
-    password: str = ""
+    password: str = field(default="", repr=False)  # never show in logs or tracebacks
     allow_write: bool = False          # outlets and feed cycles
     allow_program_write: bool = False  # outlet programs (needs allow_write too)
     protected: frozenset[str] = frozenset()  # lower-case dids or names, never forced ON/OFF

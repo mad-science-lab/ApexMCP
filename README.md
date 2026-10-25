@@ -90,6 +90,8 @@ With `APEX_ALLOW_PROGRAM_WRITE`:
 
 ## Safety notes
 
+See [SECURITY.md](SECURITY.md) for reporting a problem and the known limits, including prompt injection through controller-supplied names and programs.
+
 - `/rest/config` contains the controller admin password in plaintext. It is stripped from every response, along with the Fusion link key. `nconf` is not available as a config section.
 - Manual `ON`/`OFF` overrides an outlet's program until you set it back to `AUTO`. Heaters and return pumps are the obvious candidates for `APEX_PROTECTED_OUTLETS`.
 - Cancelling a feed while none is running corrupts the controller's feed block for about 17 hours (`name: 256`, underflowed countdown). `apex_cancel_feed` refuses to do it, and feed data is range-checked on read.

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from apexmcp import config, tools
@@ -239,3 +241,17 @@ async def test_program_edit_needs_its_own_flag(client, rw):
     from dataclasses import replace
     with pytest.raises(ToolError, match="PROGRAM_WRITE"):
         await tools.update_program(client, replace(rw, allow_program_write=False), "Heater50w", "Set ON")
+
+
+def test_settings_repr_hides_password():
+    from apexmcp.config import Settings
+    assert "hunter2" not in repr(Settings(host="x", password="hunter2"))
+
+
+async def test_backup_filename_is_sanitised(client, rw):
+    hostile = "../../evil\\x"
+    client.config["oconf"][0]["did"] = hostile
+    client.status["outputs"][0]["did"] = hostile
+    out = await tools.update_program(client, rw, "Heater50w", "Fallback OFF\nSet OFF", confirm=True)
+    path = Path(out["backup"]).resolve()
+    assert path.parent == rw.backup_dir.resolve() and ".." not in path.name

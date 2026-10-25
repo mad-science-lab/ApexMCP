@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import difflib
 import json
+import re
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -435,7 +436,8 @@ async def update_program(
                 "next": "Call again with confirm=true to apply. The old program is backed up first."}
 
     settings.backup_dir.mkdir(parents=True, exist_ok=True)
-    backup = Path(settings.backup_dir) / f"{did}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+    safe_did = re.sub(r"[^A-Za-z0-9_-]", "_", did)  # the id comes from the controller
+    backup = Path(settings.backup_dir) / f"{safe_did}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
     backup.write_text(json.dumps(obj, indent=2), encoding="utf-8")
     await client.put_outlet_config({**obj, "prog": prog})
     verify = await client.get_config()
