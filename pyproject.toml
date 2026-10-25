@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apexmcp"
+version = "0.1.0"
+description = "MCP server for Neptune Apex aquarium controllers: standalone, no MQTT, read-only unless you enable writes"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "AGPL-3.0-only" }
+dependencies = [
+    "aiohttp>=3.9",
+    "mcp>=1.2,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24"]
+
+[project.scripts]
+apexmcp = "apexmcp.server:main"
+
+[tool.setuptools.packages.find]
+include = ["apexmcp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
