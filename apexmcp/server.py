@@ -76,6 +76,21 @@ def build_server(settings: Settings) -> FastMCP:
         return await tools.outlets(await rt.client(), outlet_type)
 
     @mcp.tool()
+    async def apex_water_parameters() -> dict[str, Any]:
+        """Temp, pH, ORP, salinity and any Trident chemistry (alk, Ca, Mg, NO3, PO4) in one short answer."""
+        return await tools.water_parameters(await rt.client())
+
+    @mcp.tool()
+    async def apex_power_summary(top: int = 5) -> dict[str, Any]:
+        """Total watts and amps, line voltage and the top consumers. Needs an energy bar such as the EB832."""
+        return await tools.power_summary(await rt.client(), top)
+
+    @mcp.tool()
+    async def apex_digital_inputs() -> dict[str, Any]:
+        """Float switches and other digital inputs as OPEN or CLOSED."""
+        return await tools.digital_inputs(await rt.client())
+
+    @mcp.tool()
     async def apex_feed_status() -> dict[str, Any]:
         """Whether a feed cycle (A to D) is running and how many seconds remain."""
         return await tools.feed_status(await rt.client())

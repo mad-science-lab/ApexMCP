@@ -161,6 +161,81 @@ async def module_health(client: ApexLike) -> list[dict[str, Any]]:
     return out
 
 
+# Probe types that count as water chemistry. Trident readings (Alk, Ca, Mg, NO3, PO4)
+# arrive as ordinary probes, so they appear here only when that hardware is fitted.
+_WATER = (
+    ("temperature", "Temp"), ("ph", "pH"), ("orp", "ORP"), ("salinity", "Cond"),
+    ("alkalinity", "Alk"), ("calcium", "Ca"), ("magnesium", "Mg"),
+    ("nitrate", "NO3"), ("phosphate", "PO4"),
+)
+
+
+async def water_parameters(client: ApexLike) -> dict[str, Any]:
+    """Temp, pH, ORP, salinity and any Trident chemistry in one short answer."""
+    snap = await _snapshot(client)
+    by_type = {p.type.lower(): p for p in snap.probes}
+    found: dict[str, Any] = {}
+    missing = []
+    for key, ptype in _WATER:
+        probe = by_type.get(ptype.lower())
+        if probe is None or probe.value is None:
+            missing.append(key)
+            continue
+        entry = {"value": probe.value, "probe": probe.name}
+        if "unit_guess" in probe.to_dict():
+            entry["unit_guess"] = probe.to_dict()["unit_guess"]
+        found[key] = entry
+    return {"parameters": found, "not_available": missing}
+
+
+def _strip_suffix(name: str, suffix: str) -> str:
+    return name[:-1] if name.endswith(suffix) and len(name) > 1 else name
+
+
+async def power_summary(client: ApexLike, top: int = 5) -> dict[str, Any]:
+    """Total watts and amps, line voltage, and the biggest consumers."""
+    snap = await _snapshot(client)
+    per: dict[tuple[str, str], dict[str, float]] = {}
+    volts = []
+    for p in snap.probes:
+        if not isinstance(p.value, float):
+            continue
+        module = p.did.split("_", 1)[0]
+        if p.type == "pwr":
+            per.setdefault((module, _strip_suffix(p.name, "W")), {})["watts"] = p.value
+        elif p.type == "Amps":
+            per.setdefault((module, _strip_suffix(p.name, "A")), {})["amps"] = p.value
+        elif p.type == "volts":
+            volts.append({"module": module, "volts": p.value})
+    if not per:
+        return {"note": "no power-monitoring probes found (an EB832 or similar energy bar is needed)"}
+    rows = [{"outlet": base, "module": mod, "watts": v.get("watts", 0.0), "amps": v.get("amps", 0.0)}
+            for (mod, base), v in per.items()]
+    rows.sort(key=lambda r: (r["watts"], r["amps"]), reverse=True)
+    active = [r for r in rows if r["watts"] > 0 or r["amps"] > 0]
+    return {
+        "total_watts": round(sum(r["watts"] for r in rows), 1),
+        "total_amps": round(sum(r["amps"] for r in rows), 2),
+        "volts": volts,
+        "top": active[: max(1, top)],
+        "outlets_idle": len(rows) - len(active),
+        "note": "A reading of a few watts on an outlet that is off can be idle draw, not real load.",
+    }
+
+
+async def digital_inputs(client: ApexLike) -> dict[str, Any]:
+    """Float switches and other digital inputs as OPEN or CLOSED.
+
+    The controller reports 0 or a non-zero number. Non-zero is read as CLOSED, which fits
+    a real program rule (`If SumpHI CLOSED Then ON` is idle while SumpHI reads 0).
+    """
+    snap = await _snapshot(client)
+    inputs = [{"name": p.name, "did": p.did, "state": "CLOSED" if p.value else "OPEN"}
+              for p in snap.probes if p.type == "digital" and p.value is not None]
+    return {"inputs": inputs,
+            "note": "OPEN or CLOSED is the contact state. Whether that means wet or dry depends on how each switch is wired."}
+
+
 async def config_section(client: ApexLike, section: str) -> Any:
     if section not in CONFIG_SECTIONS:
         raise ToolError(f"section must be one of: {', '.join(CONFIG_SECTIONS)}")

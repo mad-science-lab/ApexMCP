@@ -255,3 +255,55 @@ async def test_backup_filename_is_sanitised(client, rw):
     out = await tools.update_program(client, rw, "Heater50w", "Fallback OFF\nSet OFF", confirm=True)
     path = Path(out["backup"]).resolve()
     assert path.parent == rw.backup_dir.resolve() and ".." not in path.name
+
+
+# -- convenience tools -------------------------------------------------------
+
+async def test_water_parameters_lists_found_and_missing(client):
+    out = await tools.water_parameters(client)
+    assert out["parameters"]["temperature"]["value"] == 77.0
+    assert out["parameters"]["temperature"]["unit_guess"] == "F"
+    assert out["parameters"]["ph"]["value"] == 7.77
+    assert "orp" in out["not_available"] and "alkalinity" in out["not_available"]
+
+
+async def test_water_parameters_picks_up_trident_probes(client):
+    client.status["inputs"].append({"did": "5_Alk", "type": "Alk", "name": "Alk_KH", "value": 8.2})
+    out = await tools.water_parameters(client)
+    assert out["parameters"]["alkalinity"]["value"] == 8.2
+
+
+def _with_power(client):
+    client.status["inputs"] += [
+        {"did": "2_P6", "type": "Amps", "name": "Heater50wA", "value": 0.5},
+        {"did": "2_P14", "type": "pwr", "name": "Heater50wW", "value": 62},
+        {"did": "2_P3", "type": "Amps", "name": "SecondPwrA", "value": 0.3},
+        {"did": "2_P11", "type": "pwr", "name": "SecondPwrW", "value": 28},
+        {"did": "2_P7", "type": "Amps", "name": "Heater200A", "value": 0},
+        {"did": "2_P15", "type": "pwr", "name": "Heater200W", "value": 0},
+        {"did": "2_P16", "type": "volts", "name": "Volt_2", "value": 117},
+    ]
+
+
+async def test_power_summary_pairs_amps_and_watts(client):
+    _with_power(client)
+    out = await tools.power_summary(client, top=5)
+    assert out["total_watts"] == 90.0 and out["total_amps"] == 0.8
+    assert [r["outlet"] for r in out["top"]] == ["Heater50w", "SecondPwr"]
+    assert out["top"][0]["watts"] == 62.0 and out["top"][0]["amps"] == 0.5
+    assert out["outlets_idle"] == 1 and out["volts"] == [{"module": "2", "volts": 117.0}]
+
+
+async def test_power_summary_respects_top(client):
+    _with_power(client)
+    assert len((await tools.power_summary(client, top=1))["top"]) == 1
+
+
+async def test_power_summary_without_energy_bar(client):
+    assert "no power-monitoring probes" in (await tools.power_summary(client))["note"]
+
+
+async def test_digital_inputs_open_and_closed(client):
+    client.status["inputs"].append({"did": "1_I2", "type": "digital", "name": "SumpHI", "value": 0})
+    states = {i["name"]: i["state"] for i in (await tools.digital_inputs(client))["inputs"]}
+    assert states == {"Lvl-L": "CLOSED", "SumpHI": "OPEN"}

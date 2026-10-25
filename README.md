@@ -56,6 +56,27 @@ The server runs on your own machine over stdio, so it works in the desktop app b
 
 Use the Python from the environment where you ran `pip install`. Leave out the two `ALLOW` lines for a read-only server.
 
+## Features
+
+| Area | ApexMCP |
+| --- | --- |
+| Host config | Works with a hostname (`apex.local`) or an IP. Clear config errors. Password file with optional username and labels |
+| Security | Credentials are stripped from every response, and the config's `nconf` section is refused. Redaction was checked against a live controller |
+| Writes | Off by default. Write tools are not registered unless enabled, and program edits need a separate flag |
+| Program edits | Diff first, confirm to apply, backup file, re-read to verify, directive check |
+| Protected outlets | `APEX_PROTECTED_OUTLETS` limits them to AUTO and blocks program edits |
+| Feed cancel | Refuses when no feed is running, because that corrupts the feed block for about 17 hours |
+| Controller politeness | 3 s status cache. 429 is surfaced with `Retry-After` |
+| Outlet state parsing | Parsed into mode, energized, percent and pump mode |
+| History and analytics | Probe history, drift stats, outlet on/off events, duty cycle |
+| Water parameters | `apex_water_parameters`: temp, pH, ORP, salinity, plus Trident chemistry when fitted |
+| Power | `apex_power_summary`: totals, voltage, top consumers |
+| Digital inputs | `apex_digital_inputs`: float switches as OPEN or CLOSED |
+| Fusion cloud | None, by design |
+| Home Assistant | None, by design |
+| Dosing | Coming soon |
+| Auto testing | Coming soon |
+
 ## Tools
 
 Always available:
@@ -65,6 +86,9 @@ Always available:
 | `apex_system_info` | Identity, firmware, modules, feed state, power-failure times, network quality |
 | `apex_get_probes` | Current readings, optionally by type |
 | `apex_get_outlets` | Every outlet: mode (AUTO/ON/OFF), energized, power level, pump mode |
+| `apex_water_parameters` | Temp, pH, ORP, salinity and Trident chemistry (alk, Ca, Mg, NO3, PO4) when fitted; lists what is not available |
+| `apex_power_summary` | Total watts and amps, line voltage, top consumers. Needs an energy bar such as the EB832 |
+| `apex_digital_inputs` | Float switches and other digital inputs as OPEN or CLOSED |
 | `apex_feed_status` | Running feed cycle and seconds remaining |
 | `apex_module_health` | Aquabus module presence and packet error rate |
 | `apex_get_config` | One config section, credentials redacted |
