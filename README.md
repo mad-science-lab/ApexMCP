@@ -88,6 +88,40 @@ With `APEX_ALLOW_PROGRAM_WRITE`:
 | --- | --- |
 | `apex_update_program` | Returns a diff by default. With `confirm=true` it backs up the old program, writes the new one, then re-reads to verify. Unknown directives are rejected. |
 
+## Editing MXM tables (`tdata`)
+
+MXM lights and pumps run on time tables. On the AOS 5.16L controller this was developed against, the table is part of the outlet's program text, one row per line:
+
+```
+Fallback OFF
+tdata 22:50:00,0,0,10,100,0,0,0,0,0,0,0,0,0
+tdata 23:59:00,0,0,8,100,0,0,0,0,0,0,0,0,0
+```
+
+How to read a row:
+
+- `HH:MM:SS` is the time the row takes effect. The two zeros that follow are unused.
+- **Lights:** the next value is the intensity percent. After it come the per-colour channel values, in the order of the outlet's `colors` list. Read that list with `apex_get_config` (section `oconf`, entry `extra.colors`). Unused channels are `0`.
+- **Pumps:** after the intensity comes a mode ID. The IDs and names are in the outlet's `extra.modes`.
+- Per earlier reverse-engineering, the controller ramps between rows and wraps at midnight. This has not been re-verified on 5.16L.
+- A trailing line such as `Set OFF` overrides the table. Read the whole program before concluding that a table drives an outlet.
+
+To change a row:
+
+1. Enable `APEX_ALLOW_WRITE` and `APEX_ALLOW_PROGRAM_WRITE`, and make sure the outlet is not in `APEX_PROTECTED_OUTLETS`.
+2. Read the program with `apex_get_program`.
+3. Send the full program back through `apex_update_program` with only the row you want changed. Copy an existing row and edit its values rather than writing one from scratch, because channel counts and order depend on the fixture.
+4. Check the diff. It should show exactly the lines you meant to change. Then call it again with `confirm=true`.
+5. The old program is saved as JSON in `APEX_BACKUP_DIR` first. To undo, send that program's text back through `apex_update_program`. There is no separate restore tool.
+
+Status: one edit has been verified, changing a single row on a Radion lunar channel (AOS 5.16L). The diff touched only that line and a re-read matched. **Not yet tested:** pump tables, adding or removing rows, and Prime lights.
+
+Things to watch:
+
+- The tool checks that each line starts with a known directive. It does not check the numbers inside a `tdata` row, so a malformed row can break a schedule. Use the diff.
+- Anything else that writes tables, such as a lunar-phase scheduler, will overwrite your edit on its next run.
+- The change takes effect on the controller immediately.
+
 ## Safety notes
 
 See [SECURITY.md](SECURITY.md) for reporting a problem and the known limits, including prompt injection through controller-supplied names and programs.
