@@ -31,7 +31,11 @@ Everything is an environment variable.
 
 Disabled tools are not registered at all, so the model never sees them.
 
-### Claude Desktop / Claude Code
+### Claude Desktop (Chat tab) and Claude Code
+
+Claude Desktop reads `%APPDATA%\Claude\claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`). Add the block below under `mcpServers` and fully restart the app. Claude Code takes the same definition: save it as JSON and run `claude mcp add-json apex "<json>" --scope user` (on Windows PowerShell this is more reliable than `claude mcp add ... -- python -m apexmcp`, which mangles `-m`).
+
+The server runs on your own machine over stdio, so it works in the desktop app but not in claude.ai in a browser or the mobile app. The settings are read once at startup, so restart the client after changing the password file or any variable.
 
 ```json
 {
