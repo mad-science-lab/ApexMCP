@@ -37,6 +37,44 @@ def test_password_file(tmp_path):
     assert s.password == "secret"
 
 
+def test_password_file_with_username_line(tmp_path):
+    f = tmp_path / "pw"
+    f.write_text("﻿keith\nsecret\n", encoding="utf-8")
+    s = config.load({"APEX_HOST": "x", "APEX_PASSWORD_FILE": str(f)})
+    assert (s.username, s.password) == ("keith", "secret")
+
+
+@pytest.mark.parametrize("text", [
+    "Username: keith\nPassword: sec ret\n",
+    "password=sec ret\nuser = keith\n",
+])
+def test_password_file_labels(tmp_path, text):
+    f = tmp_path / "pw"
+    f.write_text(text)
+    s = config.load({"APEX_HOST": "x", "APEX_PASSWORD_FILE": str(f)})
+    assert (s.username, s.password) == ("keith", "sec ret")
+
+
+def test_password_file_label_typo(tmp_path):
+    f = tmp_path / "pw"
+    f.write_text("usernane:admin\npasswrod:secret\n")
+    s = config.load({"APEX_HOST": "x", "APEX_PASSWORD_FILE": str(f)})
+    assert (s.username, s.password) == ("admin", "secret")
+
+
+def test_password_file_single_labeled_line(tmp_path):
+    f = tmp_path / "pw"
+    f.write_text("password: secret\n")
+    assert config.load({"APEX_HOST": "x", "APEX_PASSWORD_FILE": str(f)}).password == "secret"
+
+
+def test_password_file_too_many_lines(tmp_path):
+    f = tmp_path / "pw"
+    f.write_text("a\nb\nc\n")
+    with pytest.raises(config.ConfigError):
+        config.load({"APEX_HOST": "x", "APEX_PASSWORD_FILE": str(f)})
+
+
 def test_protected_is_case_insensitive():
     s = config.load({"APEX_HOST": "x", "APEX_PROTECTED_OUTLETS": "ReturnPump, 2_8"})
     assert s.is_protected("4_1", "returnpump") and s.is_protected("2_8", "Heater")

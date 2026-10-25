@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +13,20 @@ _TRUE = {"1", "true", "yes", "on"}
 
 class ConfigError(RuntimeError):
     pass
+
+
+# Label prefixes, as regex. Loose on purpose so a typo like "usernane:" still reads as a label.
+_USER_LABELS = (r"user\w*", r"login\w*")
+_PASS_LABELS = (r"pass\w*",)
+
+
+def _label(line: str, labels: tuple[str, ...]) -> bool:
+    return re.match(rf"^\s*(?:{'|'.join(labels)})\s*[:=]", line, re.IGNORECASE) is not None
+
+
+def _unlabel(line: str, labels: tuple[str, ...]) -> str:
+    m = re.match(rf"^\s*(?:{'|'.join(labels)})\s*[:=]\s*(.*)$", line, re.IGNORECASE)
+    return (m.group(1) if m else line).strip()
 
 
 def _flag(env: Mapping[str, str], key: str) -> bool:
@@ -39,13 +54,33 @@ def load(env: Mapping[str, str] | None = None) -> Settings:
     if not host:
         raise ConfigError("APEX_HOST is required, e.g. APEX_HOST=http://reef.local")
 
+    username = env.get("APEX_USERNAME", "admin").strip() or "admin"
     password = env.get("APEX_PASSWORD", "")
     password_file = env.get("APEX_PASSWORD_FILE", "").strip()
     if not password and password_file:
         try:
-            password = Path(password_file).read_text(encoding="utf-8").strip()
+            lines = [
+                ln.strip()
+                for ln in Path(password_file).read_text(encoding="utf-8-sig").splitlines()
+                if ln.strip()
+            ]
         except OSError as exc:
             raise ConfigError(f"cannot read APEX_PASSWORD_FILE: {exc}") from exc
+        # One line is the password. Two lines are username then password, and either
+        # line may carry a label such as "username: x" or "password=y".
+        if len(lines) == 1:
+            password = _unlabel(lines[0], _PASS_LABELS)
+        elif len(lines) == 2:
+            by_label = {
+                "user": [_unlabel(ln, _USER_LABELS) for ln in lines if _label(ln, _USER_LABELS)],
+                "pass": [_unlabel(ln, _PASS_LABELS) for ln in lines if _label(ln, _PASS_LABELS)],
+            }
+            if by_label["user"] and by_label["pass"]:
+                username, password = by_label["user"][0], by_label["pass"][0]
+            else:
+                username, password = _unlabel(lines[0], _USER_LABELS), _unlabel(lines[1], _PASS_LABELS)
+        elif len(lines) > 2:
+            raise ConfigError("APEX_PASSWORD_FILE should hold the password, or username then password")
 
     allow_write = _flag(env, "APEX_ALLOW_WRITE")
     allow_program_write = _flag(env, "APEX_ALLOW_PROGRAM_WRITE")
@@ -64,7 +99,7 @@ def load(env: Mapping[str, str] | None = None) -> Settings:
 
     return Settings(
         host=host,
-        username=env.get("APEX_USERNAME", "admin").strip() or "admin",
+        username=username,
         password=password,
         allow_write=allow_write,
         allow_program_write=allow_program_write,

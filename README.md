@@ -22,7 +22,7 @@ Everything is an environment variable.
 | --- | --- | --- |
 | `APEX_HOST` | required | `http://reef.local` or an IP. `.local` names need working mDNS on the machine running the server. |
 | `APEX_USERNAME` | `admin` | |
-| `APEX_PASSWORD` | empty | Or `APEX_PASSWORD_FILE` to read it from a file. Needed for any write. |
+| `APEX_PASSWORD` | empty | Or `APEX_PASSWORD_FILE` to read it from a file: one line is the password, two lines are username then password. Needed for any write. |
 | `APEX_ALLOW_WRITE` | `false` | Enables `apex_set_outlet`, `apex_start_feed`, `apex_cancel_feed`. |
 | `APEX_ALLOW_PROGRAM_WRITE` | `false` | Also enables `apex_update_program`. Requires `APEX_ALLOW_WRITE`. |
 | `APEX_PROTECTED_OUTLETS` | none | Comma-separated device IDs or names (`ReturnPump,2_8`). These accept only `AUTO` and their programs cannot be edited. |
